@@ -9,11 +9,18 @@ import cors from 'cors'
 import { User as UserModel } from './models/user.js'
 import { Plant as PlantModel } from './models/plant.js'
 import { Tag as TagModel } from './models/tag.js'
-import Users from './dataSources/users.js'
+import { UserPlant as UserPlantModel } from './models/user-plant.js'
+import Users from './data-sources/users.js'
 import pkg from 'body-parser'
-import { PlantDocument, TagDocument, UserDocument } from './types.js'
-import Plants from './dataSources/plants.js'
-import Tags from './dataSources/tags.js'
+import {
+    PlantDocument,
+    TagDocument,
+    UserDocument,
+    UserPlantDocument,
+} from './types.js'
+import { Plants } from './data-sources/plants.js'
+import Tags from './data-sources/tags.js'
+import UserPlants from './data-sources/user-plants.js'
 const { json } = pkg
 
 await mongoose.connect('mongodb://127.0.0.1:27017/ragnemt')
@@ -35,6 +42,12 @@ const typeDefs = `#graphql
     _id: ID!
     name: String
   }
+
+  input TagInput {
+    name:String
+  }
+
+  
   type Plant {
     _id: ID!
     name: String!
@@ -44,8 +57,21 @@ const typeDefs = `#graphql
     watering: String!
     substrate: String!
     advice: String!
-    tags: String
+    tags: [Tag!]!
   }
+
+  type UserPlant {
+        plant: Plants,
+        buyingDate: String,
+        buyingLocation: String,
+        price: Number,
+        giftDate: String,
+        gifter: String,
+        lastWatering: String,
+        lastRepot: String,
+        personnalPictures: Array<String>
+  }
+
   type Query {
     users: [User]
     user(_id: ID!): User
@@ -53,7 +79,10 @@ const typeDefs = `#graphql
     plant(_id: ID!): Plant
     tags: [Tag]
     tag(_id: ID!) : Tag
+    userPlants: [userPlant]
+    userPlant(_id: ID!) : UserPlant
   }
+
   type Mutation {
     addUser(username: String, password: String, email: String): User
     addPlant(name: String,
@@ -62,8 +91,19 @@ const typeDefs = `#graphql
         sunshine: String,
         substrate: String,
         watering: String,
-        advice: String) : Plant
+        advice: String,
+        tags: [TagInput]) : Plant
     addTag(name: String) : Tag
+    addUserPlant(plant: Plants,
+        buyingDate: String,
+        buyingLocation: String,
+        price: Number,
+        giftDate: String,
+        gifter: String,
+        lastWatering: String,
+        lastRepot: String,
+        personnalPictures: Array<String>
+    ) : UserPlant
   }
 `
 
@@ -108,6 +148,21 @@ const resolvers = {
                 return res
             })
         },
+        userPlants: (_parent: any, _args: any, { datas }) => {
+            return datas.userPlants.getUserPlants()
+        },
+        userPlant: (_parent: any, { _id }, { datas }) => {
+            return datas.userPlants
+                .getUserPlant(_id)
+                .then((res: UserPlantDocument) => {
+                    if (!res) {
+                        throw new GraphQLError(
+                            `User Plant with User Plant Id ${_id} does not exist.`
+                        )
+                    }
+                    return res
+                })
+        },
     },
     Mutation: {
         addUser: (_parent: any, { username, password, email }, { datas }) => {
@@ -130,6 +185,7 @@ const resolvers = {
                 sunshine,
                 watering,
                 advice,
+                tags,
             },
             { datas }
         ) => {
@@ -141,7 +197,8 @@ const resolvers = {
                     substrate,
                     sunshine,
                     watering,
-                    advice
+                    advice,
+                    tags
                 )
                 .then((res: { insertedIds: ObjectId[] }) => ({
                     _id: res.insertedIds[0],
@@ -152,6 +209,47 @@ const resolvers = {
                     sunshine,
                     watering,
                     advice,
+                    tags,
+                }))
+        },
+        addUserPlant: (
+            _parent: any,
+            {
+                plant,
+                buyingDate,
+                buyingLocation,
+                price,
+                giftDate,
+                gifter,
+                lastWatering,
+                lastRepot,
+                personnalPictures,
+            },
+            { datas }
+        ) => {
+            return datas.userPlants
+                .addUserPlant(
+                    plant,
+                    buyingDate,
+                    buyingLocation,
+                    price,
+                    giftDate,
+                    gifter,
+                    lastWatering,
+                    lastRepot,
+                    personnalPictures
+                )
+                .then((res: { insertedIds: ObjectId[] }) => ({
+                    _id: res.insertedIds[0],
+                    plant,
+                    buyingDate,
+                    buyingLocation,
+                    price,
+                    giftDate,
+                    gifter,
+                    lastWatering,
+                    lastRepot,
+                    personnalPictures,
                 }))
         },
         addTag: (_parent: any, { name }, { datas }) => {
@@ -170,6 +268,7 @@ interface MyContext {
         users: Users
         plants: Plants
         tags: Tags
+        userPlants: UserPlants
     }
 }
 
@@ -193,6 +292,9 @@ app.use(
                 users: new Users(await UserModel.createCollection()),
                 plants: new Plants(await PlantModel.createCollection()),
                 tags: new Tags(await TagModel.createCollection()),
+                userPlants: new UserPlants(
+                    await UserPlantModel.createCollection()
+                ),
             },
         }),
     })

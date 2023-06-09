@@ -1,5 +1,6 @@
-import mongoose, { Schema, mongo } from 'mongoose'
+import mongoose, { Schema } from 'mongoose'
 import { ObjectId } from 'mongodb'
+import Tags from '../data-sources/tags'
 
 const plantSchema = new Schema({
     _id: ObjectId,
@@ -10,7 +11,7 @@ const plantSchema = new Schema({
     watering: String,
     substrate: String,
     advice: String,
-    tags: String,
+    tags: Array<Tags>,
 })
 
 export const Plant = mongoose.model('plant', plantSchema)

@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb'
 import { PlantDocument } from '../types'
 import Tags from './tags'
 
-export default class Plants extends MongoDataSource<PlantDocument> {
+export class Plants extends MongoDataSource<PlantDocument> {
     getPlants() {
         return this.collection.find().toArray()
     }
@@ -20,7 +20,7 @@ export default class Plants extends MongoDataSource<PlantDocument> {
         substrate: string,
         watering: string,
         advice: string,
-        tag: Array<Tags>
+        tags: [Tags]
     ) {
         return this.collection.insertMany([
             {
@@ -31,6 +31,7 @@ export default class Plants extends MongoDataSource<PlantDocument> {
                 substrate,
                 watering,
                 advice,
+                tags,
             },
         ])
     }

@@ -1,4 +1,6 @@
 import { ObjectId } from 'mongodb'
+import Tags from './data-sources/tags'
+import Plants from './data-sources/plants'
 
 export interface UserDocument {
     _id?: ObjectId
@@ -20,10 +22,23 @@ export interface PlantDocument {
     watering: string
     substrate: string
     advice: string
-    tags?: string
+    tags?: [Tags]
 }
 
 export interface TagDocument {
     _id?: ObjectId
     name: string
+}
+
+export interface UserPlantDocument {
+    _id?: ObjectId
+    plant: Plants
+    buyingDate: String
+    buyingLocation: String
+    price: Number
+    giftDate: String
+    gifter: String
+    lastWatering: String
+    lastRepot: String
+    personnalPictures: Array<String>
 }
